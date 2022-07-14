@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
 	"os"
@@ -15,7 +16,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	reader := csv.NewReader(f)
+	defer f.Close()
+	bufferedReader := bufio.NewReader(f)
+	// Skip first 6 lines
+	for i := 0; i < 7; i++ {
+		bufferedReader.ReadBytes('\n')
+	}
+	reader := csv.NewReader(bufferedReader)
 	reader.Comma = ';'
 	csvRecords, err := reader.ReadAll()
 	if err != nil {

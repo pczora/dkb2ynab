@@ -8,18 +8,20 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pczora/dkb2ynab/config"
 )
 
 func main() {
 	args := os.Args
+	config := config.NewDkbConfig()
 	f, err := os.Open(args[1])
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
 	bufferedReader := bufio.NewReader(f)
-	// Skip first 6 lines
-	for i := 0; i < 7; i++ {
+	for i := 0; i < config.SkipLines; i++ {
 		bufferedReader.ReadBytes('\n')
 	}
 	reader := csv.NewReader(bufferedReader)
@@ -30,25 +32,28 @@ func main() {
 	}
 	var parsedRecords []Record
 	for _, r := range csvRecords {
-		date, err := time.Parse("02.01.2006", r[1])
+		date, err := time.Parse(config.DateFormat, r[config.DateColumn])
 		if err != nil {
 			panic(err)
 		}
-		normalizedAmount := normalizeAmount(r[7])
-		amount, err := strconv.ParseFloat(normalizedAmount, 64)
+		amountString := r[config.AmountColumn]
+		if config.NormalizeAmount {
+			normalizeAmount(&amountString)
+		}
+		amount, err := strconv.ParseFloat(amountString, 64)
 		if err != nil {
 			panic(err)
 		}
-		record := Record{date, r[3], r[4], amount}
+		record := Record{date, r[config.PayeeColumn], r[config.MemoColumn], amount}
 		parsedRecords = append(parsedRecords, record)
 	}
 	writeRecords(parsedRecords)
 }
 
-func normalizeAmount(amount string) string {
-	intermediatResult := strings.Replace(amount, ".", "", -1)
-	result := strings.Replace(intermediatResult, ",", ".", -1)
-	return result
+// Attention: this currently only normalizes amounts in German formatting
+func normalizeAmount(amount *string) {
+	*amount = strings.Replace(*amount, ".", "", -1)
+	*amount = strings.Replace(*amount, ",", ".", -1)
 }
 
 func writeRecords(records []Record) {

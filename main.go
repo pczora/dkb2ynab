@@ -15,22 +15,11 @@ import (
 func main() {
 	args := os.Args
 	config := config.NewDkbConfig()
-	f, err := os.Open(args[1])
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	bufferedReader := bufio.NewReader(f)
-	for i := 0; i < config.SkipLines; i++ {
-		bufferedReader.ReadBytes('\n')
-	}
-	reader := csv.NewReader(bufferedReader)
-	reader.Comma = ';'
-	csvRecords, err := reader.ReadAll()
-	if err != nil {
-		panic(err)
-	}
 	var parsedRecords []Record
+	csvRecords, err := readCSVRecords(args[1], config)
+	if err != nil {
+		panic(err)
+	}
 	for _, r := range csvRecords {
 		date, err := time.Parse(config.DateFormat, r[config.DateColumn])
 		if err != nil {
@@ -48,6 +37,22 @@ func main() {
 		parsedRecords = append(parsedRecords, record)
 	}
 	writeRecords(parsedRecords)
+}
+
+func readCSVRecords(path string, config config.Config) ([][]string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	bufferedReader := bufio.NewReader(f)
+	for i := 0; i < config.SkipLines; i++ {
+		bufferedReader.ReadBytes('\n')
+	}
+	reader := csv.NewReader(bufferedReader)
+	reader.Comma = ';'
+	csvRecords, err := reader.ReadAll()
+	return csvRecords, err
 }
 
 // Attention: this currently only normalizes amounts in German formatting

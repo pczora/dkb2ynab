@@ -6,7 +6,7 @@ import (
 )
 
 type YnabDateTime struct {
-	DateTime
+	time.Time
 }
 
 func (date *YnabDateTime) MarshalCSV() (string, error) {
@@ -14,16 +14,17 @@ func (date *YnabDateTime) MarshalCSV() (string, error) {
 }
 
 func (date *YnabDateTime) UnmarshalCSV(csv string) (err error) {
-	date.Time, err = time.Parse("2006/01/02", csv)
+	t, err := time.Parse("2006/01/02", csv)
+	date.Time = t
 	return err
 }
 
 type YnabAmount struct {
-	Amount
+	float64
 }
 
 func (amount *YnabAmount) MarshalCSV() (string, error) {
-	return strconv.FormatFloat(amount.amount, 'f', 2, 64), nil
+	return strconv.FormatFloat(amount.float64, 'f', 2, 64), nil
 }
 
 func (amount *YnabAmount) UnmarshalCSV(csv string) (err error) {
@@ -31,7 +32,7 @@ func (amount *YnabAmount) UnmarshalCSV(csv string) (err error) {
 	if err != nil {
 		return err
 	}
-	amount.Amount.amount = floatAmount
+	amount.float64 = floatAmount
 	return nil
 }
 

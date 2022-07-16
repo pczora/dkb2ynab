@@ -19,10 +19,12 @@ func main() {
 		panic(err)
 	}
 	for _, r := range dkbRecords {
-		ynabRecord := formats.YnabRecord{Date: formats.YnabDateTime(r.Date), Payee: r.Payee, Memo: r.PostingText, Amount: formats.YnabAmount(r.Amount)}
+		genericRecord := formats.Record{Date: formats.DateTime(r.Date), ValueDate: formats.DateTime(r.ValueDate), Payee: r.Payee, PostingText: r.PostingText, Amount: formats.Amount(r.Amount)}
+		ynabRecord := formats.YnabRecord{Date: formats.YnabDateTime(genericRecord.Date), Payee: genericRecord.Payee, Memo: genericRecord.PostingText, Amount: formats.YnabAmount(genericRecord.Amount)}
 		ynabRecords = append(ynabRecords, ynabRecord)
 	}
 	marshalled, err := gocsv.MarshalString(ynabRecords)
+
 	if err != nil {
 		panic(err)
 	}

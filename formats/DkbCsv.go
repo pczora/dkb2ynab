@@ -7,7 +7,7 @@ import (
 )
 
 type DkbDateTime struct {
-	DateTime
+	time.Time
 }
 
 func (date *DkbDateTime) MarshalCSV() (string, error) {
@@ -15,31 +15,29 @@ func (date *DkbDateTime) MarshalCSV() (string, error) {
 }
 
 func (date *DkbDateTime) UnmarshalCSV(csv string) (err error) {
-	date.Time, err = time.Parse("02.01.2006", csv)
+	t, err := time.Parse("02.01.2006", csv)
+	date.Time = t
 	return err
 }
 
 type DkbAmount struct {
-	Amount
+	float64
 }
 
 func (amount *DkbAmount) MarshalCSV() (string, error) {
-	return strconv.FormatFloat(amount.amount, 'f', 2, 64), nil
+	return strconv.FormatFloat(amount.float64, 'f', 2, 64), nil
 }
 
 func (amount *DkbAmount) UnmarshalCSV(csv string) (err error) {
 	normalizedAmount := normalizeAmount(csv)
 	floatAmount, err := strconv.ParseFloat(normalizedAmount, 64)
-	if err != nil {
-		return err
-	}
-	amount.Amount.amount = floatAmount
+	amount.float64 = floatAmount
 	return nil
 }
 
 type DkbRecord struct {
 	Date              DkbDateTime `csv:"Buchungstag"`
-	ValueDate         DkbDateTime `csv:"Wertstellungstag"`
+	ValueDate         DkbDateTime `csv:"Wertstellung"`
 	PostingText       string      `csv:"Buchungstext"`
 	Payee             string      `csv:"Auftraggeber / Begünstigter"`
 	Purpose           string      `csv:"Verwendungszweck"`

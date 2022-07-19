@@ -42,3 +42,15 @@ type YnabRecord struct {
 	Memo   string       `csv:"Memo"`
 	Amount YnabAmount   `csv:"Amount"`
 }
+
+type YnabFormatConverter struct{}
+
+func (y *YnabFormatConverter) ConvertFromInternalRecord(r InternalRecord) YnabRecord {
+	ynabRecord := YnabRecord{Date: YnabDateTime(r.Date), Payee: r.Payee, Memo: r.Purpose, Amount: YnabAmount(r.Amount)}
+	return ynabRecord
+}
+
+func (y *YnabFormatConverter) ConvertToInternalRecord(r YnabRecord) InternalRecord {
+	internalRecord := InternalRecord{Date: DateTime(r.Date), ValueDate: DateTime(r.Date), Payee: r.Payee, PostingText: r.Memo, Amount: Amount(r.Amount)}
+	return internalRecord
+}

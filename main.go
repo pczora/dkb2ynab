@@ -18,9 +18,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	dkbConverter := formats.DkbFormatConverter{}
+	ynabConverter := formats.YnabFormatConverter{}
 	for _, r := range dkbRecords {
-		genericRecord := formats.Record{Date: formats.DateTime(r.Date), ValueDate: formats.DateTime(r.ValueDate), Payee: r.Payee, PostingText: r.PostingText, Amount: formats.Amount(r.Amount)}
-		ynabRecord := formats.YnabRecord{Date: formats.YnabDateTime(genericRecord.Date), Payee: genericRecord.Payee, Memo: genericRecord.PostingText, Amount: formats.YnabAmount(genericRecord.Amount)}
+		genericRecord := dkbConverter.ConvertToInternalRecord(r)
+		ynabRecord := ynabConverter.ConvertFromInternalRecord(genericRecord)
 		ynabRecords = append(ynabRecords, ynabRecord)
 	}
 	marshalled, err := gocsv.MarshalString(ynabRecords)

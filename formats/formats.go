@@ -10,7 +10,7 @@ type Amount struct {
 	float64
 }
 
-type Record struct {
+type InternalRecord struct {
 	Date              DateTime `csv:"Date"`
 	ValueDate         DateTime `csv:"Value Date"`
 	PostingText       string   `csv:"Posting Text"`
@@ -22,4 +22,13 @@ type Record struct {
 	CreditorID        string   `csv:"Creditor ID"`
 	MandateReference  string   `csv:"Mandate Reference"`
 	CustomerReference string   `csv:"Customer Reference"`
+}
+
+type Record interface {
+	InternalRecord | YnabRecord | DkbRecord
+}
+
+type Converter[R Record] interface {
+	ConvertFromInternalRecord(i InternalRecord) R
+	ConvertToInternalRecord(r R) InternalRecord
 }

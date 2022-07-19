@@ -31,6 +31,9 @@ func (amount *DkbAmount) MarshalCSV() (string, error) {
 func (amount *DkbAmount) UnmarshalCSV(csv string) (err error) {
 	normalizedAmount := normalizeAmount(csv)
 	floatAmount, err := strconv.ParseFloat(normalizedAmount, 64)
+	if err != nil {
+		return err
+	}
 	amount.float64 = floatAmount
 	return nil
 }
@@ -53,4 +56,15 @@ func normalizeAmount(amount string) string {
 	result := strings.Replace(amount, ".", "", -1)
 	result = strings.Replace(result, ",", ".", -1)
 	return result
+}
+
+type DkbFormatConverter struct{}
+
+func (d *DkbFormatConverter) ConvertFromInternalRecord(r InternalRecord) DkbRecord {
+	return DkbRecord{Date: DkbDateTime(r.Date), ValueDate: DkbDateTime(r.ValueDate), PostingText: r.PostingText, Payee: r.Payee, Purpose: r.Purpose, BankAccountNumber: r.BankAccountNumber, BankCode: r.BankCode, Amount: DkbAmount(r.Amount), CreditorID: r.CreditorID, MandateReference: r.MandateReference, CustomerReference: r.CustomerReference}
+}
+
+func (d *DkbFormatConverter) ConvertToInternalRecord(r DkbRecord) InternalRecord {
+	internalRecord := InternalRecord{Date: DateTime(r.Date), ValueDate: DateTime(r.ValueDate), PostingText: r.PostingText, Payee: r.Payee, Purpose: r.Purpose, BankAccountNumber: r.BankAccountNumber, BankCode: r.BankCode, Amount: Amount(r.Amount), CreditorID: r.CreditorID, MandateReference: r.MandateReference, CustomerReference: r.CustomerReference}
+	return internalRecord
 }

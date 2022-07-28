@@ -1,9 +1,16 @@
 package formats
 
 import (
+	"bufio"
+	"encoding/csv"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gocarina/gocsv"
+	"golang.org/x/text/encoding/charmap"
 )
 
 type DkbDateTime struct {
@@ -61,10 +68,48 @@ func normalizeAmount(amount string) string {
 type DkbFormatConverter struct{}
 
 func (d *DkbFormatConverter) ConvertFromInternalRecord(r InternalRecord) DkbRecord {
+
 	return DkbRecord{Date: DkbDateTime(r.Date), ValueDate: DkbDateTime(r.ValueDate), PostingText: r.PostingText, Payee: r.Payee, Purpose: r.Purpose, BankAccountNumber: r.BankAccountNumber, BankCode: r.BankCode, Amount: DkbAmount(r.Amount), CreditorID: r.CreditorID, MandateReference: r.MandateReference, CustomerReference: r.CustomerReference}
 }
 
 func (d *DkbFormatConverter) ConvertToInternalRecord(r DkbRecord) InternalRecord {
 	internalRecord := InternalRecord{Date: DateTime(r.Date), ValueDate: DateTime(r.ValueDate), PostingText: r.PostingText, Payee: r.Payee, Purpose: r.Purpose, BankAccountNumber: r.BankAccountNumber, BankCode: r.BankCode, Amount: Amount(r.Amount), CreditorID: r.CreditorID, MandateReference: r.MandateReference, CustomerReference: r.CustomerReference}
 	return internalRecord
+}
+
+func (d *DkbFormatConverter) ConvertFromFile(path string) []InternalRecord {
+	f, err := os.Open(path)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer f.Close()
+
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		// DKB uses ISO8859-15 (for whatever reason)
+		reader := csv.NewReader(charmap.ISO8859_15.NewDecoder().Reader(in))
+		reader.Comma = ';'
+		return reader
+	})
+
+	dkbRecords := []DkbRecord{}
+
+	fileReader := bufio.NewReader(f)
+
+	// The first 6 lines are metadata
+	for i := 0; i <= 5; i++ {
+		fileReader.ReadLine()
+	}
+
+	err = gocsv.Unmarshal(fileReader, &dkbRecords)
+	if err != nil {
+		panic(err)
+	}
+	var result []InternalRecord
+	for _, r := range dkbRecords {
+		genericRecord := d.ConvertToInternalRecord(r)
+		result = append(result, genericRecord)
+	}
+	return result
 }

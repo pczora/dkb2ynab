@@ -31,4 +31,5 @@ type Record interface {
 type Converter[R Record] interface {
 	ConvertFromInternalRecord(i InternalRecord) R
 	ConvertToInternalRecord(r R) InternalRecord
+	ConvertFromFile(path string) []InternalRecord
 }

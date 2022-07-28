@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/csv"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/gocarina/gocsv"
@@ -13,16 +11,12 @@ import (
 func main() {
 	args := os.Args
 	var ynabRecords []formats.YnabRecord
-	var dkbRecords []formats.DkbRecord
-	err := readCSVRecords(args[1], &dkbRecords)
-	if err != nil {
-		panic(err)
-	}
+	var dkbRecords []formats.InternalRecord
 	dkbConverter := formats.DkbFormatConverter{}
 	ynabConverter := formats.YnabFormatConverter{}
+	dkbRecords = dkbConverter.ConvertFromFile(args[1])
 	for _, r := range dkbRecords {
-		genericRecord := dkbConverter.ConvertToInternalRecord(r)
-		ynabRecord := ynabConverter.ConvertFromInternalRecord(genericRecord)
+		ynabRecord := ynabConverter.ConvertFromInternalRecord(r)
 		ynabRecords = append(ynabRecords, ynabRecord)
 	}
 	marshalled, err := gocsv.MarshalString(ynabRecords)
@@ -31,23 +25,4 @@ func main() {
 		panic(err)
 	}
 	fmt.Print(marshalled)
-}
-
-func readCSVRecords(path string, out *[]formats.DkbRecord) error {
-	f, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		reader := csv.NewReader(in)
-		reader.Comma = ';'
-		return reader
-	})
-	err = gocsv.UnmarshalFile(f, out)
-	if err != nil {
-		panic(err)
-	}
-	return nil
 }

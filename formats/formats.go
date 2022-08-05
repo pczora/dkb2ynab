@@ -24,12 +24,10 @@ type InternalRecord struct {
 	CustomerReference string   `csv:"Customer Reference"`
 }
 
-type Record interface {
-	InternalRecord | YnabRecord | DkbRecord
-}
+type Record interface{}
 
-type Converter[R Record] interface {
-	ConvertFromInternalRecord(i InternalRecord) R
-	ConvertToInternalRecord(r R) InternalRecord
+type Converter interface {
+	ConvertFromInternalRecord(i InternalRecord) Record
+	ConvertToInternalRecord(r Record) InternalRecord
 	ConvertFromFile(path string) []InternalRecord
 }

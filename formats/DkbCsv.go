@@ -67,9 +67,9 @@ func normalizeAmount(amount string) string {
 
 type DkbFormatConverter struct{}
 
-func (d *DkbFormatConverter) ConvertFromInternalRecord(r InternalRecord) DkbRecord {
+func (d *DkbFormatConverter) ConvertFromInternalRecord(i InternalRecord) DkbRecord {
 
-	return DkbRecord{Date: DkbDateTime(r.Date), ValueDate: DkbDateTime(r.ValueDate), PostingText: r.PostingText, Payee: r.Payee, Purpose: r.Purpose, BankAccountNumber: r.BankAccountNumber, BankCode: r.BankCode, Amount: DkbAmount(r.Amount), CreditorID: r.CreditorID, MandateReference: r.MandateReference, CustomerReference: r.CustomerReference}
+	return DkbRecord{Date: DkbDateTime(i.Date), ValueDate: DkbDateTime(i.ValueDate), PostingText: i.PostingText, Payee: i.Payee, Purpose: i.Purpose, BankAccountNumber: i.BankAccountNumber, BankCode: i.BankCode, Amount: DkbAmount(i.Amount), CreditorID: i.CreditorID, MandateReference: i.MandateReference, CustomerReference: i.CustomerReference}
 }
 
 func (d *DkbFormatConverter) ConvertToInternalRecord(r DkbRecord) InternalRecord {
@@ -108,6 +108,62 @@ func (d *DkbFormatConverter) ConvertFromFile(path string) []InternalRecord {
 	}
 	var result []InternalRecord
 	for _, r := range dkbRecords {
+		genericRecord := d.ConvertToInternalRecord(r)
+		result = append(result, genericRecord)
+	}
+	return result
+}
+
+type DkbCreditCardRecord struct {
+	Marked    string      `csv:"Umsatz abgerechnet aber nicht im Saldo enthalten"` // Ignored (for now)
+	ValueDate DkbDateTime `csv:"Wertstellung"`
+	Date      DkbDateTime `csv:"Belegdatum"`
+	Purpose   string      `csv:"Beschreibung"`
+	Amount    DkbAmount   `csv:"Betrag (EUR)"`
+	//OriginalAmount DkbAmount   `csv:"Ursprünglicher Betrag"` // Ignored (for now)
+}
+
+type DkbCreditCardFormatConverter struct{}
+
+func (d *DkbCreditCardFormatConverter) ConvertFromInternalRecord(i InternalRecord) DkbCreditCardRecord {
+	return DkbCreditCardRecord{"", DkbDateTime(i.ValueDate), DkbDateTime(i.Date), i.Purpose, DkbAmount(i.Amount)}
+}
+
+func (d *DkbCreditCardFormatConverter) ConvertToInternalRecord(r DkbCreditCardRecord) InternalRecord {
+	return InternalRecord{Date: DateTime(r.Date), ValueDate: DateTime(r.ValueDate), PostingText: r.Purpose, Payee: r.Purpose, Purpose: r.Purpose, BankAccountNumber: "", BankCode: "", Amount: Amount(r.Amount), CreditorID: "", MandateReference: "", CustomerReference: ""}
+}
+
+func (d *DkbCreditCardFormatConverter) ConvertFromFile(path string) []InternalRecord {
+	f, err := os.Open(path)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer f.Close()
+
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		// DKB uses ISO8859-15 (for whatever reason)
+		reader := csv.NewReader(charmap.ISO8859_15.NewDecoder().Reader(in))
+		reader.Comma = ';'
+		return reader
+	})
+
+	dkbCreditCardRecords := []DkbCreditCardRecord{}
+
+	fileReader := bufio.NewReader(f)
+
+	// The first 6 lines are metadata
+	for i := 0; i <= 5; i++ {
+		fileReader.ReadLine()
+	}
+
+	err = gocsv.Unmarshal(fileReader, &dkbCreditCardRecords)
+	if err != nil {
+		panic(err)
+	}
+	var result []InternalRecord
+	for _, r := range dkbCreditCardRecords {
 		genericRecord := d.ConvertToInternalRecord(r)
 		result = append(result, genericRecord)
 	}

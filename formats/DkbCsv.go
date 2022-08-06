@@ -3,6 +3,7 @@ package formats
 import (
 	"bufio"
 	"encoding/csv"
+	"errors"
 	"io"
 	"os"
 	"strconv"
@@ -12,6 +13,15 @@ import (
 	"github.com/gocarina/gocsv"
 	"golang.org/x/text/encoding/charmap"
 )
+
+func init() {
+	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
+		// DKB uses ISO8859-15 (for whatever reason)
+		reader := csv.NewReader(charmap.ISO8859_15.NewDecoder().Reader(in))
+		reader.Comma = ';'
+		return reader
+	})
+}
 
 type DkbDateTime struct {
 	time.Time
@@ -86,22 +96,11 @@ func (d *DkbFormatConverter) ConvertFromFile(path string) []InternalRecord {
 
 	defer f.Close()
 
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		// DKB uses ISO8859-15 (for whatever reason)
-		reader := csv.NewReader(charmap.ISO8859_15.NewDecoder().Reader(in))
-		reader.Comma = ';'
-		return reader
-	})
-
-	dkbRecords := []DkbRecord{}
-
 	fileReader := bufio.NewReader(f)
 
-	// The first 6 lines are metadata
-	for i := 0; i <= 5; i++ {
-		fileReader.ReadLine()
-	}
+	skipLines(fileReader, 6)
 
+	dkbRecords := []DkbRecord{}
 	err = gocsv.Unmarshal(fileReader, &dkbRecords)
 	if err != nil {
 		panic(err)
@@ -125,47 +124,49 @@ type DkbCreditCardRecord struct {
 
 type DkbCreditCardFormatConverter struct{}
 
-func (d *DkbCreditCardFormatConverter) ConvertFromInternalRecord(i InternalRecord) DkbCreditCardRecord {
-	return DkbCreditCardRecord{"", DkbDateTime(i.ValueDate), DkbDateTime(i.Date), i.Purpose, DkbAmount(i.Amount)}
+func (d DkbCreditCardFormatConverter) ConvertFromInternalRecord(i InternalRecord) (Record, error) {
+	return DkbCreditCardRecord{"", DkbDateTime(i.ValueDate), DkbDateTime(i.Date), i.Purpose, DkbAmount(i.Amount)}, nil
 }
 
-func (d *DkbCreditCardFormatConverter) ConvertToInternalRecord(r DkbCreditCardRecord) InternalRecord {
-	return InternalRecord{Date: DateTime(r.Date), ValueDate: DateTime(r.ValueDate), PostingText: r.Purpose, Payee: r.Purpose, Purpose: r.Purpose, BankAccountNumber: "", BankCode: "", Amount: Amount(r.Amount), CreditorID: "", MandateReference: "", CustomerReference: ""}
+func (d DkbCreditCardFormatConverter) ConvertToInternalRecord(r Record) (InternalRecord, error) {
+	record, ok := r.(DkbCreditCardRecord)
+	if !ok {
+		return InternalRecord{}, errors.New("Record is not of type DkbCreditCardRecord")
+	}
+	return InternalRecord{Date: DateTime(record.Date), ValueDate: DateTime(record.ValueDate), PostingText: record.Purpose, Payee: record.Purpose, Purpose: record.Purpose, BankAccountNumber: "", BankCode: "", Amount: Amount(record.Amount), CreditorID: "", MandateReference: "", CustomerReference: ""}, nil
 }
 
-func (d *DkbCreditCardFormatConverter) ConvertFromFile(path string) []InternalRecord {
+func (d DkbCreditCardFormatConverter) ConvertFromFile(path string) ([]InternalRecord, error) {
 	f, err := os.Open(path)
 
 	if err != nil {
-		panic(err)
+		return []InternalRecord{}, errors.New("cannot open file")
 	}
 
 	defer f.Close()
 
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		// DKB uses ISO8859-15 (for whatever reason)
-		reader := csv.NewReader(charmap.ISO8859_15.NewDecoder().Reader(in))
-		reader.Comma = ';'
-		return reader
-	})
-
-	dkbCreditCardRecords := []DkbCreditCardRecord{}
-
 	fileReader := bufio.NewReader(f)
 
-	// The first 6 lines are metadata
-	for i := 0; i <= 5; i++ {
-		fileReader.ReadLine()
-	}
+	skipLines(fileReader, 6)
 
+	dkbCreditCardRecords := []DkbCreditCardRecord{}
 	err = gocsv.Unmarshal(fileReader, &dkbCreditCardRecords)
 	if err != nil {
 		panic(err)
 	}
 	var result []InternalRecord
 	for _, r := range dkbCreditCardRecords {
-		genericRecord := d.ConvertToInternalRecord(r)
+		genericRecord, err := d.ConvertToInternalRecord(r)
+		if err != nil {
+			return result, errors.New("could not convert record")
+		}
 		result = append(result, genericRecord)
 	}
-	return result
+	return result, nil
+}
+
+func skipLines(r *bufio.Reader, n int) {
+	for i := 0; i < n; i++ {
+		r.ReadLine()
+	}
 }

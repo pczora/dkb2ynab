@@ -20,9 +20,15 @@ func main() {
 	//ynabRecord := ynabConverter.ConvertFromInternalRecord(r)
 	//ynabRecords = append(ynabRecords, ynabRecord)
 	//}
-	dkbCreditCardRecords = dkbCreditCardConverter.ConvertFromFile(args[1])
+	dkbCreditCardRecords, err := dkbCreditCardConverter.ConvertFromFile(args[1])
+	if err != nil {
+		panic("Could not convert records")
+	}
 	for _, r := range dkbCreditCardRecords {
-		ynabRecord := ynabConverter.ConvertFromInternalRecord(r)
+		ynabRecord, err := ynabConverter.ConvertFromInternalRecord(r)
+		if err != nil {
+			panic("Could not convert record")
+		}
 		ynabRecords = append(ynabRecords, ynabRecord)
 	}
 	marshalled, err := gocsv.MarshalString(ynabRecords)

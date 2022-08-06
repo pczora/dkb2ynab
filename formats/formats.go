@@ -27,7 +27,7 @@ type InternalRecord struct {
 type Record interface{}
 
 type Converter interface {
-	ConvertFromInternalRecord(i InternalRecord) Record
-	ConvertToInternalRecord(r Record) InternalRecord
-	ConvertFromFile(path string) []InternalRecord
+	ConvertFromInternalRecord(i InternalRecord) (Record, error)
+	ConvertToInternalRecord(r Record) (InternalRecord, error)
+	ConvertFromFile(path string) ([]InternalRecord, error)
 }

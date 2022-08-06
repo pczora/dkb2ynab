@@ -45,16 +45,16 @@ type YnabRecord struct {
 
 type YnabFormatConverter struct{}
 
-func (y *YnabFormatConverter) ConvertFromFile(path string) []InternalRecord {
+func (y YnabFormatConverter) ConvertFromFile(path string) ([]InternalRecord, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (y *YnabFormatConverter) ConvertFromInternalRecord(r InternalRecord) YnabRecord {
+func (y YnabFormatConverter) ConvertFromInternalRecord(r InternalRecord) (YnabRecord, error) {
 	ynabRecord := YnabRecord{Date: YnabDateTime(r.Date), Payee: r.Payee, Memo: r.Purpose, Amount: YnabAmount(r.Amount)}
-	return ynabRecord
+	return ynabRecord, nil
 }
 
-func (y *YnabFormatConverter) ConvertToInternalRecord(r YnabRecord) InternalRecord {
+func (y YnabFormatConverter) ConvertToInternalRecord(r YnabRecord) (InternalRecord, error) {
 	internalRecord := InternalRecord{Date: DateTime(r.Date), ValueDate: DateTime(r.Date), Payee: r.Payee, PostingText: r.Memo, Amount: Amount(r.Amount)}
-	return internalRecord
+	return internalRecord, nil
 }

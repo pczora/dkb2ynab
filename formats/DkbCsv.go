@@ -87,11 +87,11 @@ func (d *DkbFormatConverter) ConvertToInternalRecord(r DkbRecord) InternalRecord
 	return internalRecord
 }
 
-func (d *DkbFormatConverter) ConvertFromFile(path string) []InternalRecord {
+func (d *DkbFormatConverter) ConvertFromFile(path string) ([]InternalRecord, error) {
 	f, err := os.Open(path)
 
 	if err != nil {
-		panic(err)
+		return []InternalRecord{}, err
 	}
 
 	defer f.Close()
@@ -103,14 +103,14 @@ func (d *DkbFormatConverter) ConvertFromFile(path string) []InternalRecord {
 	dkbRecords := []DkbRecord{}
 	err = gocsv.Unmarshal(fileReader, &dkbRecords)
 	if err != nil {
-		panic(err)
+		return []InternalRecord{}, err
 	}
 	var result []InternalRecord
 	for _, r := range dkbRecords {
 		genericRecord := d.ConvertToInternalRecord(r)
 		result = append(result, genericRecord)
 	}
-	return result
+	return result, nil
 }
 
 type DkbCreditCardRecord struct {

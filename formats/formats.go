@@ -1,6 +1,11 @@
 package formats
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var converters = []Converter{&DkbRoboConverter{}, &YnabFormatConverter{}, &DkbCreditCardFormatConverter{}, &DkbFormatConverter{}, &DkbRoboCreditCardConverter{}}
 
 type DateTime struct {
 	time.Time
@@ -30,4 +35,14 @@ type Converter interface {
 	ConvertFromInternalRecord(i InternalRecord) (Record, error)
 	ConvertToInternalRecord(r Record) (InternalRecord, error)
 	ConvertFromFile(path string) ([]InternalRecord, error)
+	Identify(path string) bool
+}
+
+func FindSuitableConverter(path string) (Converter, error) {
+	for _, converter := range converters {
+		if converter.Identify(path) {
+			return converter, nil
+		}
+	}
+	return nil, errors.New("could not find suitable converter")
 }

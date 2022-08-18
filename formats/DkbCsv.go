@@ -77,14 +77,23 @@ func normalizeAmount(amount string) string {
 
 type DkbFormatConverter struct{}
 
-func (d *DkbFormatConverter) ConvertFromInternalRecord(i InternalRecord) DkbRecord {
-
-	return DkbRecord{Date: DkbDateTime(i.Date), ValueDate: DkbDateTime(i.ValueDate), PostingText: i.PostingText, Payee: i.Payee, Purpose: i.Purpose, BankAccountNumber: i.BankAccountNumber, BankCode: i.BankCode, Amount: DkbAmount(i.Amount), CreditorID: i.CreditorID, MandateReference: i.MandateReference, CustomerReference: i.CustomerReference}
+func (d *DkbFormatConverter) Identify(path string) bool {
+	//TODO: implement
+	return false
 }
 
-func (d *DkbFormatConverter) ConvertToInternalRecord(r DkbRecord) InternalRecord {
-	internalRecord := InternalRecord{Date: DateTime(r.Date), ValueDate: DateTime(r.ValueDate), PostingText: r.PostingText, Payee: r.Payee, Purpose: r.Purpose, BankAccountNumber: r.BankAccountNumber, BankCode: r.BankCode, Amount: Amount(r.Amount), CreditorID: r.CreditorID, MandateReference: r.MandateReference, CustomerReference: r.CustomerReference}
-	return internalRecord
+func (d *DkbFormatConverter) ConvertFromInternalRecord(i InternalRecord) (Record, error) {
+
+	return DkbRecord{Date: DkbDateTime(i.Date), ValueDate: DkbDateTime(i.ValueDate), PostingText: i.PostingText, Payee: i.Payee, Purpose: i.Purpose, BankAccountNumber: i.BankAccountNumber, BankCode: i.BankCode, Amount: DkbAmount(i.Amount), CreditorID: i.CreditorID, MandateReference: i.MandateReference, CustomerReference: i.CustomerReference}, nil
+}
+
+func (d *DkbFormatConverter) ConvertToInternalRecord(r Record) (InternalRecord, error) {
+	record, ok := r.(DkbRecord)
+	if !ok {
+		return InternalRecord{}, errors.New("Record is not of type DkbCreditCardRecord")
+	}
+	internalRecord := InternalRecord{Date: DateTime(record.Date), ValueDate: DateTime(record.ValueDate), PostingText: record.PostingText, Payee: record.Payee, Purpose: record.Purpose, BankAccountNumber: record.BankAccountNumber, BankCode: record.BankCode, Amount: Amount(record.Amount), CreditorID: record.CreditorID, MandateReference: record.MandateReference, CustomerReference: record.CustomerReference}
+	return internalRecord, nil
 }
 
 func (d *DkbFormatConverter) ConvertFromFile(path string) ([]InternalRecord, error) {
@@ -107,7 +116,10 @@ func (d *DkbFormatConverter) ConvertFromFile(path string) ([]InternalRecord, err
 	}
 	var result []InternalRecord
 	for _, r := range dkbRecords {
-		genericRecord := d.ConvertToInternalRecord(r)
+		genericRecord, err := d.ConvertToInternalRecord(r)
+		if err != nil {
+			return result, err
+		}
 		result = append(result, genericRecord)
 	}
 	return result, nil
@@ -124,11 +136,16 @@ type DkbCreditCardRecord struct {
 
 type DkbCreditCardFormatConverter struct{}
 
-func (d DkbCreditCardFormatConverter) ConvertFromInternalRecord(i InternalRecord) (Record, error) {
+func (d *DkbCreditCardFormatConverter) Identify(path string) bool {
+	//TODO: implement
+	return false
+}
+
+func (d *DkbCreditCardFormatConverter) ConvertFromInternalRecord(i InternalRecord) (Record, error) {
 	return DkbCreditCardRecord{"", DkbDateTime(i.ValueDate), DkbDateTime(i.Date), i.Purpose, DkbAmount(i.Amount)}, nil
 }
 
-func (d DkbCreditCardFormatConverter) ConvertToInternalRecord(r Record) (InternalRecord, error) {
+func (d *DkbCreditCardFormatConverter) ConvertToInternalRecord(r Record) (InternalRecord, error) {
 	record, ok := r.(DkbCreditCardRecord)
 	if !ok {
 		return InternalRecord{}, errors.New("Record is not of type DkbCreditCardRecord")
@@ -136,7 +153,7 @@ func (d DkbCreditCardFormatConverter) ConvertToInternalRecord(r Record) (Interna
 	return InternalRecord{Date: DateTime(record.Date), ValueDate: DateTime(record.ValueDate), PostingText: record.Purpose, Payee: record.Purpose, Purpose: record.Purpose, BankAccountNumber: "", BankCode: "", Amount: Amount(record.Amount), CreditorID: "", MandateReference: "", CustomerReference: ""}, nil
 }
 
-func (d DkbCreditCardFormatConverter) ConvertFromFile(path string) ([]InternalRecord, error) {
+func (d *DkbCreditCardFormatConverter) ConvertFromFile(path string) ([]InternalRecord, error) {
 	f, err := os.Open(path)
 
 	if err != nil {

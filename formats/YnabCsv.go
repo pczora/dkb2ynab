@@ -1,6 +1,7 @@
 package formats
 
 import (
+	"errors"
 	"strconv"
 	"time"
 )
@@ -45,16 +46,25 @@ type YnabRecord struct {
 
 type YnabFormatConverter struct{}
 
+func (y *YnabFormatConverter) Identify(path string) bool {
+	//TODO: implement
+	return false
+}
+
 func (y YnabFormatConverter) ConvertFromFile(path string) ([]InternalRecord, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (y YnabFormatConverter) ConvertFromInternalRecord(r InternalRecord) (YnabRecord, error) {
+func (y YnabFormatConverter) ConvertFromInternalRecord(r InternalRecord) (Record, error) {
 	ynabRecord := YnabRecord{Date: YnabDateTime(r.Date), Payee: r.Payee, Memo: r.Purpose, Amount: YnabAmount(r.Amount)}
 	return ynabRecord, nil
 }
 
-func (y YnabFormatConverter) ConvertToInternalRecord(r YnabRecord) (InternalRecord, error) {
-	internalRecord := InternalRecord{Date: DateTime(r.Date), ValueDate: DateTime(r.Date), Payee: r.Payee, PostingText: r.Memo, Amount: Amount(r.Amount)}
+func (y YnabFormatConverter) ConvertToInternalRecord(r Record) (InternalRecord, error) {
+	record, ok := r.(YnabRecord)
+	if !ok {
+		return InternalRecord{}, errors.New("Record is not of type YnabRecord")
+	}
+	internalRecord := InternalRecord{Date: DateTime(record.Date), ValueDate: DateTime(record.Date), Payee: record.Payee, PostingText: record.Memo, Amount: Amount(record.Amount)}
 	return internalRecord, nil
 }

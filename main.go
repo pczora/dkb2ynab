@@ -10,32 +10,29 @@ import (
 
 func main() {
 	args := os.Args
+	//TODO: validation
+	path := args[1]
 	var ynabRecords []formats.YnabRecord
-	//var dkbCreditCardRecords []formats.InternalRecord
-	//dkbConverter := formats.DkbFormatConverter{}
-	dkbRoboConverter := formats.DkbRoboConverter{}
-	//dkbCreditCardConverter := formats.DkbCreditCardFormatConverter{}
+	var inputRecords []formats.InternalRecord
 	ynabConverter := formats.YnabFormatConverter{}
-	//dkbRecords, err := dkbConverter.ConvertFromFile(args[1])
-	dkbRoboRecords, err := dkbRoboConverter.ConvertFromFile(args[1])
+
+	converter, err := formats.FindSuitableConverter(path)
 	if err != nil {
 		panic(err)
 	}
-	for _, r := range dkbRoboRecords {
+	records, err := converter.ConvertFromFile(path)
+	inputRecords = records
+	if err != nil {
+		panic(err)
+	}
+
+	for _, r := range inputRecords {
 		ynabRecord, err := ynabConverter.ConvertFromInternalRecord(r)
 		if err != nil {
 			panic(err)
 		}
-		ynabRecords = append(ynabRecords, ynabRecord)
+		ynabRecords = append(ynabRecords, ynabRecord.(formats.YnabRecord))
 	}
-	//dkbCreditCardRecords, err := dkbCreditCardConverter.ConvertFromFile(args[1])
-	//for _, r := range dkbCreditCardRecords {
-	//ynabRecord, err := ynabConverter.ConvertFromInternalRecord(r)
-	//if err != nil {
-	//panic("Could not convert record")
-	//}
-	//ynabRecords = append(ynabRecords, ynabRecord)
-	//}
 	marshalled, err := gocsv.MarshalString(ynabRecords)
 
 	if err != nil {

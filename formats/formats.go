@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var converters = []Converter{&DkbRoboConverter{}, &YnabFormatConverter{}, &DkbCreditCardFormatConverter{}, &DkbFormatConverter{}, &DkbRoboCreditCardConverter{}}
+var converters = []Converter{&DkbRoboConverter{}, &YnabFormatConverter{}, &DkbCreditCardFormatConverter{}, &DkbFormatConverter{}, &DkbRoboCreditCardConverter{}, &ZinspilotFormatConverter{}}
 
 type DateTime struct {
 	time.Time
@@ -34,6 +34,7 @@ type Record interface{}
 type Converter interface {
 	ConvertFromInternalRecord(i InternalRecord) (Record, error)
 	ConvertToInternalRecord(r Record) (InternalRecord, error)
+	//TODO: This should rather convert from a byte array/a reader/... than from a file
 	ConvertFromFile(path string) ([]InternalRecord, error)
 	Identify(path string) bool
 }

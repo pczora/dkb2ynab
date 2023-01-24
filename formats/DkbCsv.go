@@ -46,7 +46,7 @@ func (amount *DkbAmount) MarshalCSV() (string, error) {
 }
 
 func (amount *DkbAmount) UnmarshalCSV(csv string) (err error) {
-	normalizedAmount := normalizeAmount(csv)
+	normalizedAmount := amount.normalizeAmount(csv)
 	floatAmount, err := strconv.ParseFloat(normalizedAmount, 64)
 	if err != nil {
 		return err
@@ -69,8 +69,8 @@ type DkbRecord struct {
 	CustomerReference string      `csv:"Kundenreferenz"`
 }
 
-func normalizeAmount(amount string) string {
-	result := strings.Replace(amount, ".", "", -1)
+func (amount *DkbAmount) normalizeAmount(a string) string {
+	result := strings.Replace(a, ".", "", -1)
 	result = strings.Replace(result, ",", ".", -1)
 	return result
 }

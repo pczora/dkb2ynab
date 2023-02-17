@@ -55,8 +55,8 @@ github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/jawher/mow.cli v1.1.0/go.mod h1:aNaQlc7ozF3vw6IJ2dHjp2ZFiA4ozMIYY6PyuRJwlUg=
 github.com/kennygrant/sanitize v1.2.4 h1:gN25/otpP5vAsO2djbMhF/LQX6R7+O1TB4yv8NzpJ3o=
 github.com/kennygrant/sanitize v1.2.4/go.mod h1:LGsjYYtgxbetdg5owWB2mpgUL6e2nfw2eObZ0u0qvak=
-github.com/pczora/dkbrobot v0.0.0-20230217223627-953b71f274e3 h1:3l68Ku7fMI+XMMdl14+BoQZjRM6gLY85SfT+9IYV8aY=
-github.com/pczora/dkbrobot v0.0.0-20230217223627-953b71f274e3/go.mod h1:wDSP8kiQ5415tes2zHGWfY6aSvZ8GAmZWTvA4MAA/+M=
+github.com/pczora/dkbrobot v0.0.0-20230217232535-e69eb264656a h1:RR08Qn8S5dmkLHXbeKSFjMjdxsxl5xNb7wlwyy6KaCQ=
+github.com/pczora/dkbrobot v0.0.0-20230217232535-e69eb264656a/go.mod h1:wDSP8kiQ5415tes2zHGWfY6aSvZ8GAmZWTvA4MAA/+M=
 github.com/pczora/zprobot v0.0.0-20230217205625-afbe6b008409 h1:JhsTnsc6WdKItuCqi/ubBiSSF0b+bu6Su3QTVRG5sFs=
 github.com/pczora/zprobot v0.0.0-20230217205625-afbe6b008409/go.mod h1:tcguCzonIqC3/WixXJZcZYcuO+D/UIEtWJqTLrsZrvw=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/gocarina/gocsv v0.0.0-20230123225133-763e25b40669
-	github.com/pczora/dkbrobot v0.0.0-20230217223627-953b71f274e3
 	golang.org/x/term v0.4.0
 	golang.org/x/text v0.3.7
 )
@@ -20,6 +19,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
+	github.com/pczora/dkbrobot v0.0.0-20230217232535-e69eb264656a // indirect
 	github.com/pczora/zprobot v0.0.0-20230217205625-afbe6b008409 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/temoto/robotstxt v1.1.1 // indirect

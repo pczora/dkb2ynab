@@ -25,7 +25,8 @@ def main():
         bank_name = ir["data-bankname"]
         value = ir.find(class_="badge-prize-value").text
         link = ir.find(class_="btn-info")
-        browser.follow_link(link["href"])
+        l = link["href"].strip()
+        browser.follow_link(l)
         table = browser.page.find("table", class_="zebra-striped")
         table_rows = table.find_all("tr")
         with open(f"{bank_name}.csv", "wt+", newline="") as f:

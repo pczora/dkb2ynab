@@ -57,8 +57,12 @@ github.com/kennygrant/sanitize v1.2.4 h1:gN25/otpP5vAsO2djbMhF/LQX6R7+O1TB4yv8Nz
 github.com/kennygrant/sanitize v1.2.4/go.mod h1:LGsjYYtgxbetdg5owWB2mpgUL6e2nfw2eObZ0u0qvak=
 github.com/pczora/dkbrobot v0.0.0-20230217232535-e69eb264656a h1:RR08Qn8S5dmkLHXbeKSFjMjdxsxl5xNb7wlwyy6KaCQ=
 github.com/pczora/dkbrobot v0.0.0-20230217232535-e69eb264656a/go.mod h1:wDSP8kiQ5415tes2zHGWfY6aSvZ8GAmZWTvA4MAA/+M=
-github.com/pczora/zprobot v0.0.0-20230217205625-afbe6b008409 h1:JhsTnsc6WdKItuCqi/ubBiSSF0b+bu6Su3QTVRG5sFs=
-github.com/pczora/zprobot v0.0.0-20230217205625-afbe6b008409/go.mod h1:tcguCzonIqC3/WixXJZcZYcuO+D/UIEtWJqTLrsZrvw=
+github.com/pczora/dkbrobot v0.0.0-20230722205141-c114b9e43007 h1:5Ybxtcubw2/Wx1gzi5Nan+Gek4yRJqKsmvZtbEkKJH8=
+github.com/pczora/dkbrobot v0.0.0-20230722205141-c114b9e43007/go.mod h1:wDSP8kiQ5415tes2zHGWfY6aSvZ8GAmZWTvA4MAA/+M=
+github.com/pczora/zprobot v0.0.0-20230218151233-2a49b3da7065 h1:FnaOMP4XmtDUmQTvw+Tdw4afpGOgp4k/XSIy1iRc3Ic=
+github.com/pczora/zprobot v0.0.0-20230218151233-2a49b3da7065/go.mod h1:tcguCzonIqC3/WixXJZcZYcuO+D/UIEtWJqTLrsZrvw=
+github.com/pczora/zprobot v0.0.0-20230218225440-dfb583427dd6 h1:rh9F+ioJPkxZJhsB5MIR4hD9UwTQyqe6Ct6wx8tSli4=
+github.com/pczora/zprobot v0.0.0-20230218225440-dfb583427dd6/go.mod h1:tcguCzonIqC3/WixXJZcZYcuO+D/UIEtWJqTLrsZrvw=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca h1:NugYot0LIVPxTvN8n+Kvkn6TrbMyxQiuvKdEwFdR9vI=

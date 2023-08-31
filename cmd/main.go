@@ -9,10 +9,16 @@ import (
 	"github.com/gocarina/gocsv"
 	"github.com/pczora/dkb2ynab/formats"
 	"github.com/pczora/dkbrobot/pkg/dkbclient"
+	"github.com/pczora/zprobot/pkg/zinspilotclient"
 	"golang.org/x/term"
 )
 
 func main() {
+	fetchDkbTransactions()
+// 	fetchZinspilotTransactions()
+}
+
+func fetchDkbTransactions() {
 	var dkbUsername string
 	var dkbPassword string
 
@@ -55,7 +61,6 @@ func main() {
 		}
 
 	}
-
 }
 
 func createDkbCheckingAccountCsv(dkb *dkbclient.Client, a dkbclient.AccountMetadata) {
@@ -87,7 +92,7 @@ func createDkbCheckingAccountCsv(dkb *dkbclient.Client, a dkbclient.AccountMetad
 		panic(err)
 	}
 
-	err = os.WriteFile(fmt.Sprintf("%v.csv", a.Account), marshalled, 0644)
+	err = os.WriteFile(fmt.Sprintf("output/dkb/%v.csv", a.Account), marshalled, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -105,7 +110,6 @@ func createDkbCreditCardCsv(dkb *dkbclient.Client, a dkbclient.AccountMetadata) 
 	}
 
 	for _, t := range transactions {
-		fmt.Printf("%+v\n", t)
 		r := formats.InternalRecord{Date: time.Time(t.Date), ValueDate: time.Time(t.ValueDate), PostingText: t.Purpose, Payee: t.Purpose, Purpose: t.Purpose, BankAccountNumber: "", BankCode: "", Amount: float64(t.Amount), CreditorID: "", MandateReference: "", CustomerReference: ""}
 		records = append(records, r)
 	}
@@ -123,8 +127,76 @@ func createDkbCreditCardCsv(dkb *dkbclient.Client, a dkbclient.AccountMetadata) 
 		panic(err)
 	}
 
-	err = os.WriteFile(fmt.Sprintf("%v.csv", a.Account), marshalled, 0644)
+	err = os.WriteFile(fmt.Sprintf("output/dkb/%v.csv", a.Account), marshalled, 0644)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func fetchZinspilotTransactions() {
+	var username string
+	var password string
+	var records []formats.InternalRecord
+	var ynabRecords []formats.YnabRecord
+	var ynabConverter formats.YnabFormatConverter
+
+	fmt.Printf("Zinspilot username: ")
+	_, err := fmt.Scanf("%s", &username)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Zinspilot password: ")
+	bytepw, err := term.ReadPassword(syscall.Stdin)
+	if err != nil {
+		os.Exit(1)
+	}
+	fmt.Print("\n")
+
+	password = string(bytepw)
+
+	zp := zinspilotclient.New()
+
+	err = zp.Login(username, password)
+	if err != nil {
+		panic(err)
+	}
+
+	accounts, err := zp.GetAccounts()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, a := range accounts {
+		transactions, err := zp.GetTransactions(a)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, t := range transactions {
+			if t.Saldo != 0 {
+				r := formats.InternalRecord{Date: t.Buchungsdatum, ValueDate: t.Wertstellung, Payee: "Zinsbuchung", Purpose: t.Umsatz, PostingText: t.Umsatz, Amount: t.Saldo}
+				records = append(records, r)
+			}
+		}
+		for _, r := range records {
+			y, err := ynabConverter.ConvertFromInternalRecord(r)
+			if err != nil {
+				fmt.Println(err)
+			}
+			ynabRecords = append(ynabRecords, y.(formats.YnabRecord))
+		}
+
+		marshalled, err := gocsv.MarshalBytes(ynabRecords)
+		if err != nil {
+			panic(err)
+		}
+
+		err = os.WriteFile(fmt.Sprintf("output/zinspilot/%v.csv", a.Name), marshalled, 0644)
+		if err != nil {
+			panic(err)
+		}
+
+	}
+
 }

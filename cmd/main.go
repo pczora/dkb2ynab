@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -13,9 +14,13 @@ import (
 	"golang.org/x/term"
 )
 
+const (
+	DateLayout = "2006-01-02"
+)
+
 func main() {
 	fetchDkbTransactions()
-// 	fetchZinspilotTransactions()
+	// 	fetchZinspilotTransactions()
 }
 
 func fetchDkbTransactions() {
@@ -44,38 +49,66 @@ func fetchDkbTransactions() {
 		panic(err)
 	}
 
-	dkbAccounts, err := dkb.ParseOverview()
+	dkbAccounts, err := dkb.GetAccounts()
 	if err != nil {
 		panic(err)
 	}
 
-	for _, a := range dkbAccounts {
-		switch a.AccountType {
-		case dkbclient.CheckingAccount:
-			createDkbCheckingAccountCsv(&dkb, a)
-		case dkbclient.CreditCard:
-			createDkbCreditCardCsv(&dkb, a)
+	for _, a := range dkbAccounts.Data {
+		createDkbCheckingAccountCsv(&dkb, a)
+	}
+
+	dkbCreditCards, err := dkb.GetCreditCards()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, c := range dkbCreditCards.Data {
+		if c.Type == "creditCard" {
+			createDkbCreditCardCsv(&dkb, c)
 		}
-		if a.AccountType != dkbclient.CheckingAccount {
+	}
+}
+
+func createDkbCheckingAccountCsv(dkb *dkbclient.Client, account dkbclient.Account) {
+
+	var ynabConverter formats.YnabFormatConverter
+	var records []formats.InternalRecord
+	var ynabRecords []formats.YnabRecord
+
+	transactions, err := dkb.GetAccountTransactions(account.Id)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	for _, t := range transactions.Data {
+		date, err := time.Parse(DateLayout, t.Attributes.BookingDate)
+		if err != nil {
+			panic(err)
+		}
+
+		if t.Attributes.Status == "pending" || t.Attributes.ValueDate == "" {
+			fmt.Println("Transaction pending, skipping...")
 			continue
 		}
 
-	}
-}
+		valueDate, err := time.Parse(DateLayout, t.Attributes.ValueDate)
+		if err != nil {
+			panic(err)
+		}
 
-func createDkbCheckingAccountCsv(dkb *dkbclient.Client, a dkbclient.AccountMetadata) {
+		amount, err := strconv.ParseFloat(t.Attributes.Amount.Value, 64)
+		if err != nil {
+			panic(err)
+		}
+		r := formats.InternalRecord{}
 
-	var ynabConverter formats.YnabFormatConverter
-	var records []formats.InternalRecord
-	var ynabRecords []formats.YnabRecord
+		if amount < 0 {
+			r = formats.InternalRecord{Date: date, ValueDate: valueDate, PostingText: t.Attributes.Description, Payee: t.Attributes.Creditor.Name, Purpose: t.Attributes.Description, BankAccountNumber: t.Attributes.Creditor.CreditorAccount.Iban, BankCode: t.Attributes.Creditor.CreditorAccount.Blz, Amount: amount, CreditorID: t.Attributes.Creditor.Id, MandateReference: t.Attributes.MandateId, CustomerReference: t.Attributes.EndToEndId}
+		} else {
+			r = formats.InternalRecord{Date: date, ValueDate: valueDate, PostingText: t.Attributes.Description, Payee: t.Attributes.Debtor.Name, Purpose: t.Attributes.Description, BankAccountNumber: t.Attributes.Debtor.DebtorAccount.Iban, BankCode: t.Attributes.Debtor.DebtorAccount.Blz, Amount: amount, CreditorID: t.Attributes.Creditor.Id, MandateReference: t.Attributes.MandateId, CustomerReference: t.Attributes.EndToEndId}
 
-	transactions, err := dkb.GetAccountTransactions(a, time.Now().Add(30*-time.Hour*24), time.Now())
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	for _, t := range transactions {
-		r := formats.InternalRecord{Date: time.Time(t.Date), ValueDate: time.Time(t.ValueDate), PostingText: t.PostingText, Payee: t.Payee, Purpose: t.Purpose, BankAccountNumber: t.BankAccountNumber, BankCode: t.BankCode, Amount: float64(t.Amount), CreditorID: t.CreditorID, MandateReference: t.MandateReference, CustomerReference: t.CustomerReference}
+		}
 		records = append(records, r)
 	}
 
@@ -92,25 +125,39 @@ func createDkbCheckingAccountCsv(dkb *dkbclient.Client, a dkbclient.AccountMetad
 		panic(err)
 	}
 
-	err = os.WriteFile(fmt.Sprintf("output/dkb/%v.csv", a.Account), marshalled, 0644)
+	err = os.MkdirAll(fmt.Sprintf("output/dkb/%v/%v/", account.Attributes.HolderName, account.Type), os.ModePerm)
+	if err != nil {
+		return
+	}
+	err = os.WriteFile(fmt.Sprintf("output/dkb/%v/%v/%v.csv", account.Attributes.HolderName, account.Type, account.Attributes.Iban), marshalled, 0644)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func createDkbCreditCardCsv(dkb *dkbclient.Client, a dkbclient.AccountMetadata) {
+func createDkbCreditCardCsv(dkb *dkbclient.Client, c dkbclient.CreditCard) {
 
 	var ynabConverter formats.YnabFormatConverter
 	var records []formats.InternalRecord
 	var ynabRecords []formats.YnabRecord
 
-	transactions, err := dkb.GetCreditCardTransactions(a, time.Now().Add(30*-time.Hour*24), time.Now())
+	transactions, err := dkb.GetCreditCardTransactions(c.Id)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	for _, t := range transactions {
-		r := formats.InternalRecord{Date: time.Time(t.Date), ValueDate: time.Time(t.ValueDate), PostingText: t.Purpose, Payee: t.Purpose, Purpose: t.Purpose, BankAccountNumber: "", BankCode: "", Amount: float64(t.Amount), CreditorID: "", MandateReference: "", CustomerReference: ""}
+	for _, t := range transactions.Data {
+		bookingDate, err := time.Parse(DateLayout, t.Attributes.BookingDate)
+		if err != nil {
+			panic(err)
+		}
+
+		amount, err := strconv.ParseFloat(t.Attributes.Amount.Value, 64)
+		if err != nil {
+			panic(err)
+		}
+
+		r := formats.InternalRecord{Date: t.Attributes.AuthorizationDate, ValueDate: bookingDate, PostingText: t.Attributes.Description, Payee: t.Attributes.Description, Purpose: t.Attributes.Description, BankAccountNumber: "", BankCode: "", Amount: amount, CreditorID: "", MandateReference: "", CustomerReference: ""}
 		records = append(records, r)
 	}
 
@@ -126,8 +173,11 @@ func createDkbCreditCardCsv(dkb *dkbclient.Client, a dkbclient.AccountMetadata) 
 	if err != nil {
 		panic(err)
 	}
-
-	err = os.WriteFile(fmt.Sprintf("output/dkb/%v.csv", a.Account), marshalled, 0644)
+	err = os.MkdirAll(fmt.Sprintf("output/dkb/%v %v/%v/", c.Attributes.Owner.FirstName, c.Attributes.Owner.LastName, c.Type), os.ModePerm)
+	if err != nil {
+		return
+	}
+	err = os.WriteFile(fmt.Sprintf("output/dkb/%v %v/%v/%v.csv", c.Attributes.Owner.FirstName, c.Attributes.Owner.LastName, c.Type, c.Attributes.MaskedPan), marshalled, 0644)
 	if err != nil {
 		panic(err)
 	}

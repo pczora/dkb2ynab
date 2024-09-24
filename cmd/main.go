@@ -10,6 +10,7 @@ import (
 	"github.com/gocarina/gocsv"
 	"github.com/pczora/dkb2ynab/formats"
 	"github.com/pczora/dkbrobot/pkg/dkbclient"
+	"github.com/pczora/dkbrobot/pkg/model"
 	"github.com/pczora/zprobot/pkg/zinspilotclient"
 	"golang.org/x/term"
 )
@@ -44,7 +45,7 @@ func fetchDkbTransactions() {
 
 	dkb := dkbclient.New()
 
-	err = dkb.Login(dkbUsername, dkbPassword)
+	err = dkb.Login(dkbUsername, dkbPassword, dkbclient.GetMostRecentlyEnrolledMFAMethod)
 	if err != nil {
 		panic(err)
 	}
@@ -70,7 +71,7 @@ func fetchDkbTransactions() {
 	}
 }
 
-func createDkbCheckingAccountCsv(dkb *dkbclient.Client, account dkbclient.Account) {
+func createDkbCheckingAccountCsv(dkb *dkbclient.Client, account model.Account) {
 
 	var ynabConverter formats.YnabFormatConverter
 	var records []formats.InternalRecord
@@ -135,7 +136,7 @@ func createDkbCheckingAccountCsv(dkb *dkbclient.Client, account dkbclient.Accoun
 	}
 }
 
-func createDkbCreditCardCsv(dkb *dkbclient.Client, c dkbclient.CreditCard) {
+func createDkbCreditCardCsv(dkb *dkbclient.Client, c model.CreditCard) {
 
 	var ynabConverter formats.YnabFormatConverter
 	var records []formats.InternalRecord
@@ -147,6 +148,10 @@ func createDkbCreditCardCsv(dkb *dkbclient.Client, c dkbclient.CreditCard) {
 	}
 
 	for _, t := range transactions.Data {
+		if t.Attributes.Status == "authorized" || t.Attributes.Status == "declined" {
+			continue
+		}
+
 		bookingDate, err := time.Parse(DateLayout, t.Attributes.BookingDate)
 		if err != nil {
 			panic(err)

@@ -6,26 +6,22 @@ import (
 	"time"
 )
 
-type YnabDateTime struct {
-	time.Time
-}
+type YnabDateTime time.Time
 
 func (date *YnabDateTime) MarshalCSV() (string, error) {
-	return date.Time.Format("2006/01/02"), nil
+	return time.Time(*date).Format("2006/01/02"), nil
 }
 
 func (date *YnabDateTime) UnmarshalCSV(csv string) (err error) {
 	t, err := time.Parse("2006/01/02", csv)
-	date.Time = t
+	*date = YnabDateTime(t)
 	return err
 }
 
-type YnabAmount struct {
-	float64
-}
+type YnabAmount float64
 
 func (amount *YnabAmount) MarshalCSV() (string, error) {
-	return strconv.FormatFloat(amount.float64, 'f', 2, 64), nil
+	return strconv.FormatFloat(float64(*amount), 'f', 2, 64), nil
 }
 
 func (amount *YnabAmount) UnmarshalCSV(csv string) (err error) {
@@ -33,7 +29,7 @@ func (amount *YnabAmount) UnmarshalCSV(csv string) (err error) {
 	if err != nil {
 		return err
 	}
-	amount.float64 = floatAmount
+	*amount = YnabAmount(floatAmount)
 	return nil
 }
 
@@ -65,6 +61,6 @@ func (y YnabFormatConverter) ConvertToInternalRecord(r Record) (InternalRecord, 
 	if !ok {
 		return InternalRecord{}, errors.New("Record is not of type YnabRecord")
 	}
-	internalRecord := InternalRecord{Date: DateTime(record.Date), ValueDate: DateTime(record.Date), Payee: record.Payee, PostingText: record.Memo, Amount: Amount(record.Amount)}
+	internalRecord := InternalRecord{Date: time.Time(record.Date), ValueDate: time.Time(record.Date), Payee: record.Payee, PostingText: record.Memo, Amount: float64(record.Amount)}
 	return internalRecord, nil
 }

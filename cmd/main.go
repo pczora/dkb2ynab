@@ -12,6 +12,8 @@ import (
 	"github.com/pczora/dkbrobot/pkg/dkbclient"
 	"github.com/pczora/dkbrobot/pkg/model"
 	"github.com/pczora/zprobot/pkg/zinspilotclient"
+	"github.com/spf13/viper"
+	"github.com/zalando/go-keyring"
 	"golang.org/x/term"
 )
 
@@ -19,33 +21,72 @@ const (
 	DateLayout = "2006-01-02"
 )
 
-func main() {
-	fetchDkbTransactions()
-	// 	fetchZinspilotTransactions()
+type fromKeyringConfig struct {
+	Key string `mapstructure:"key"`
 }
 
-func fetchDkbTransactions() {
-	var dkbUsername string
-	var dkbPassword string
+type passwordConfig struct {
+	FromKeyring fromKeyringConfig `mapstructure:"fromKeyring"`
+}
 
-	fmt.Printf("DKB username: ")
-	_, err := fmt.Scanf("%s", &dkbUsername)
+type credentialConfig struct {
+	Username string         `mapstructure:"username"`
+	Password passwordConfig `mapstructure:"password"`
+}
+
+type bankConfig struct {
+	Name        string `mapstructure:"name"`
+	Bank        string `mapstructure:"bank"`
+	Credentials credentialConfig
+}
+
+func main() {
+	viper.SetConfigName("config")
+	viper.AddConfigPath("./")
+	err := viper.ReadInConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("DKB password: ")
-	bytepw, err := term.ReadPassword(syscall.Stdin)
+	var bankConfigs []bankConfig
+	err = viper.UnmarshalKey("banks", &bankConfigs)
 	if err != nil {
-		os.Exit(1)
+		panic(err)
 	}
-	fmt.Print("\n")
 
-	dkbPassword = string(bytepw)
+	for _, bc := range bankConfigs {
+		if bc.Bank == "DKB" {
+			username := bc.Credentials.Username
+			var password string
+			if bc.Credentials.Password.FromKeyring != (fromKeyringConfig{}) {
+				password, err = keyring.Get("dkb2ynab_dkb", username)
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				fmt.Printf("DKB password: ")
+				bytepw, err := term.ReadPassword(syscall.Stdin)
+				if err != nil {
+					os.Exit(1)
+				}
+				fmt.Print("\n")
+
+				password = string(bytepw)
+			}
+			fetchDkbTransactions(username, password)
+		} else if bc.Bank == "Zinspilot" {
+			fetchZinspilotTransactions()
+		} else {
+			fmt.Println("Unknown bank: ", bc.Bank)
+		}
+	}
+}
+
+func fetchDkbTransactions(username, password string) {
 
 	dkb := dkbclient.New()
 
-	err = dkb.Login(dkbUsername, dkbPassword, dkbclient.GetMostRecentlyEnrolledMFAMethod)
+	err := dkb.Login(username, password, dkbclient.GetMostRecentlyEnrolledMFAMethod)
 	if err != nil {
 		panic(err)
 	}

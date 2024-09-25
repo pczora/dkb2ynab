@@ -2,81 +2,56 @@ package main
 
 import (
 	"fmt"
+	"github.com/pczora/dkb2ynab/pkg/config"
+	"github.com/pczora/dkb2ynab/pkg/credentials"
+	"github.com/pczora/dkb2ynab/pkg/formats"
 	"os"
 	"strconv"
-	"syscall"
+	"strings"
 	"time"
 
 	"github.com/gocarina/gocsv"
-	"github.com/pczora/dkb2ynab/formats"
 	"github.com/pczora/dkbrobot/pkg/dkbclient"
 	"github.com/pczora/dkbrobot/pkg/model"
 	"github.com/pczora/zprobot/pkg/zinspilotclient"
 	"github.com/spf13/viper"
-	"github.com/zalando/go-keyring"
-	"golang.org/x/term"
 )
 
 const (
 	DateLayout = "2006-01-02"
 )
 
-type fromKeyringConfig struct {
-	Key string `mapstructure:"key"`
-}
-
-type passwordConfig struct {
-	FromKeyring fromKeyringConfig `mapstructure:"fromKeyring"`
-}
-
-type credentialConfig struct {
-	Username string         `mapstructure:"username"`
-	Password passwordConfig `mapstructure:"password"`
-}
-
-type bankConfig struct {
-	Name        string `mapstructure:"name"`
-	Bank        string `mapstructure:"bank"`
-	Credentials credentialConfig
-}
-
 func main() {
 	viper.SetConfigName("config")
 	viper.AddConfigPath("./")
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error reading config file: %v\n", err)
+		return
 	}
 
-	var bankConfigs []bankConfig
+	var bankConfigs []config.BankConfig
 	err = viper.UnmarshalKey("banks", &bankConfigs)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error reading bank configuration: %v\n", err)
 	}
 
 	for _, bc := range bankConfigs {
-		if bc.Bank == "DKB" {
-			username := bc.Credentials.Username
-			var password string
-			if bc.Credentials.Password.FromKeyring != (fromKeyringConfig{}) {
-				password, err = keyring.Get("dkb2ynab_dkb", username)
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				fmt.Printf("DKB password: ")
-				bytepw, err := term.ReadPassword(syscall.Stdin)
-				if err != nil {
-					os.Exit(1)
-				}
-				fmt.Print("\n")
+		username := bc.Credentials.Username
+		var password string
 
-				password = string(bytepw)
-			}
-			fetchDkbTransactions(username, password)
-		} else if bc.Bank == "Zinspilot" {
-			fetchZinspilotTransactions()
+		if bc.Credentials.Password.FromKeyring != (config.FromKeyringConfig{}) {
+			password, err = credentials.FromKeyring(bc.Name, bc.Credentials.Username)
 		} else {
+			password, err = credentials.FromInteractiveInput(bc.Name, bc.Credentials.Username)
+		}
+
+		switch strings.ToLower(bc.Bank) {
+		case "dkb":
+			fetchDkbTransactions(username, password)
+		case "zinspilot":
+			fetchZinspilotTransactions(username, password)
+		default:
 			fmt.Println("Unknown bank: ", bc.Bank)
 		}
 	}
@@ -229,31 +204,14 @@ func createDkbCreditCardCsv(dkb *dkbclient.Client, c model.CreditCard) {
 	}
 }
 
-func fetchZinspilotTransactions() {
-	var username string
-	var password string
+func fetchZinspilotTransactions(username, password string) {
 	var records []formats.InternalRecord
 	var ynabRecords []formats.YnabRecord
 	var ynabConverter formats.YnabFormatConverter
 
-	fmt.Printf("Zinspilot username: ")
-	_, err := fmt.Scanf("%s", &username)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("Zinspilot password: ")
-	bytepw, err := term.ReadPassword(syscall.Stdin)
-	if err != nil {
-		os.Exit(1)
-	}
-	fmt.Print("\n")
-
-	password = string(bytepw)
-
 	zp := zinspilotclient.New()
 
-	err = zp.Login(username, password)
+	err := zp.Login(username, password)
 	if err != nil {
 		panic(err)
 	}

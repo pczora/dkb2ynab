@@ -46,6 +46,10 @@ func main() {
 			password, err = credentials.FromInteractiveInput(bc.Name, bc.Credentials.Username)
 		}
 
+		if err != nil {
+			panic(err)
+		}
+
 		switch strings.ToLower(bc.Bank) {
 		case "dkb":
 			fetchDkbTransactions(username, password)

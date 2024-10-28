@@ -1,0 +1,8 @@
+banks:
+  - name: "DKB"
+    bank: "DKB"
+    credentials:
+      username: "1035250529_p"
+      password:
+        fromKeyring:
+          key: "DKB"

@@ -13,7 +13,6 @@ import (
 	"github.com/gocarina/gocsv"
 	"github.com/pczora/dkbrobot/pkg/dkbclient"
 	"github.com/pczora/dkbrobot/pkg/model"
-	"github.com/pczora/zprobot/pkg/zinspilotclient"
 	"github.com/spf13/viper"
 )
 
@@ -53,8 +52,6 @@ func main() {
 		switch strings.ToLower(bc.Bank) {
 		case "dkb":
 			fetchDkbTransactions(username, password)
-		case "zinspilot":
-			fetchZinspilotTransactions(username, password)
 		default:
 			fmt.Println("Unknown bank: ", bc.Bank)
 		}
@@ -206,55 +203,4 @@ func createDkbCreditCardCsv(dkb *dkbclient.Client, c model.CreditCard) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func fetchZinspilotTransactions(username, password string) {
-	var records []formats.InternalRecord
-	var ynabRecords []formats.YnabRecord
-	var ynabConverter formats.YnabFormatConverter
-
-	zp := zinspilotclient.New()
-
-	err := zp.Login(username, password)
-	if err != nil {
-		panic(err)
-	}
-
-	accounts, err := zp.GetAccounts()
-	if err != nil {
-		panic(err)
-	}
-
-	for _, a := range accounts {
-		transactions, err := zp.GetTransactions(a)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, t := range transactions {
-			if t.Saldo != 0 {
-				r := formats.InternalRecord{Date: t.Buchungsdatum, ValueDate: t.Wertstellung, Payee: "Zinsbuchung", Purpose: t.Umsatz, PostingText: t.Umsatz, Amount: t.Saldo}
-				records = append(records, r)
-			}
-		}
-		for _, r := range records {
-			y, err := ynabConverter.ConvertFromInternalRecord(r)
-			if err != nil {
-				fmt.Println(err)
-			}
-			ynabRecords = append(ynabRecords, y.(formats.YnabRecord))
-		}
-
-		marshalled, err := gocsv.MarshalBytes(ynabRecords)
-		if err != nil {
-			panic(err)
-		}
-
-		err = os.WriteFile(fmt.Sprintf("output/zinspilot/%v.csv", a.Name), marshalled, 0644)
-		if err != nil {
-			panic(err)
-		}
-
-	}
-
 }
